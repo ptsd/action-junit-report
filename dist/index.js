@@ -154,8 +154,9 @@ async function attachSummary(table, detailsTable, flakySummary) {
 function buildCommentIdentifier(checkName) {
     return `<!-- Summary comment for ${JSON.stringify(checkName)} by mikepenz/action-junit-report -->`;
 }
-async function attachComment(octokit, checkName, updateComment, table, detailsTable, flakySummary) {
-    if (!utils_1.context.issue.number) {
+async function attachComment(octokit, checkName, updateComment, table, detailsTable, flakySummary, prNumber) {
+    const issueNumber = prNumber ? prNumber : utils_1.context.issue.number;
+    if (!issueNumber) {
         core.warning(`⚠️ Action requires a valid issue number (PR reference) to be able to attach a comment..`);
         return;
     }
@@ -170,7 +171,7 @@ async function attachComment(octokit, checkName, updateComment, table, detailsTa
         comment += (0, utils_2.buildTable)(flakySummary);
     }
     comment += `\n\n${identifier}`;
-    const priorComment = updateComment ? await findPriorComment(octokit, identifier) : undefined;
+    const priorComment = updateComment ? await findPriorComment(octokit, identifier, issueNumber) : undefined;
     if (priorComment) {
         await octokit.rest.issues.updateComment({
             owner: utils_1.context.repo.owner,
@@ -183,16 +184,16 @@ async function attachComment(octokit, checkName, updateComment, table, detailsTa
         await octokit.rest.issues.createComment({
             owner: utils_1.context.repo.owner,
             repo: utils_1.context.repo.repo,
-            issue_number: utils_1.context.issue.number,
+            issue_number: issueNumber,
             body: comment
         });
     }
 }
-async function findPriorComment(octokit, identifier) {
+async function findPriorComment(octokit, identifier, issueNumber) {
     const comments = await octokit.paginate(octokit.rest.issues.listComments, {
         owner: utils_1.context.repo.owner,
         repo: utils_1.context.repo.repo,
-        issue_number: utils_1.context.issue.number
+        issue_number: issueNumber
     });
     const foundComment = comments.find(comment => { var _a; return (_a = comment.body) === null || _a === void 0 ? void 0 : _a.endsWith(identifier); });
     return foundComment === null || foundComment === void 0 ? void 0 : foundComment.id;
@@ -287,6 +288,7 @@ async function run() {
         const skipAnnotations = core.getInput('skip_annotations') === 'true';
         const truncateStackTraces = core.getBooleanInput('truncate_stack_traces');
         const resolveIgnoreClassname = core.getBooleanInput('resolve_ignore_classname');
+        const issueNumber = core.getInput('issue_number');
         if (excludeSources.length === 0) {
             excludeSources = ['/build/', '/__pycache__/'];
         }
@@ -365,7 +367,7 @@ async function run() {
         }
         if (comment) {
             const octokit = github.getOctokit(token);
-            await (0, annotator_1.attachComment)(octokit, checkName, updateComment, table, detailTable, flakyTable);
+            await (0, annotator_1.attachComment)(octokit, checkName, updateComment, table, detailTable, flakyTable, issueNumber ? Number(issueNumber) : undefined);
         }
         core.setOutput('summary', (0, utils_1.buildTable)(table));
         core.setOutput('detailed_summary', (0, utils_1.buildTable)(detailTable));

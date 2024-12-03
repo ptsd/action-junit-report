@@ -49,7 +49,7 @@ export async function run(): Promise<void> {
     const skipAnnotations = core.getInput('skip_annotations') === 'true'
     const truncateStackTraces = core.getBooleanInput('truncate_stack_traces')
     const resolveIgnoreClassname = core.getBooleanInput('resolve_ignore_classname')
-
+    const issueNumber = core.getInput('issue_number')
     if (excludeSources.length === 0) {
       excludeSources = ['/build/', '/__pycache__/']
     }
@@ -170,7 +170,15 @@ export async function run(): Promise<void> {
 
     if (comment) {
       const octokit: InstanceType<typeof GitHub> = github.getOctokit(token)
-      await attachComment(octokit, checkName, updateComment, table, detailTable, flakyTable)
+      await attachComment(
+        octokit,
+        checkName,
+        updateComment,
+        table,
+        detailTable,
+        flakyTable,
+        issueNumber ? Number(issueNumber) : undefined
+      )
     }
 
     core.setOutput('summary', buildTable(table))

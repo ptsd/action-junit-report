@@ -132,6 +132,9 @@ inputs:
     description: 'Force ignore classname in resolveFileAndLine (Fixes nextest annotations)'
     required: false
     default: 'false'
+  issue_number:
+    description: 'Commit SHA to update the check status.'
+    required: false
 outputs:
   total:
     description: 'The total count of all checks'
